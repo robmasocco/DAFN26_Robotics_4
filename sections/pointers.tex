@@ -1,0 +1,116 @@
+% Section 3 - Smart pointers
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Smart pointers ###
+\section{Smart pointers}
+\graphicspath{{figs/section3/}}
+
+% --- Smart pointers ---
+\begin{frame}{Smart pointers}{The problem with raw pointers}
+	\justifying
+	Raw pointers (\texttt{T *}) give full control over heap memory, but place the entire \textbg{burden of correctness} on the programmer:
+	\begin{itemize}
+		\item every \texttt{new} must be \textbg{matched} by exactly one \texttt{delete};
+		\item in the presence of \textbg{multiple exit paths}, exceptions, or callbacks, this matching becomes error-prone;
+		\item \textbg{ownership} — who is responsible for deleting — is implicit and easy to lose track of.
+	\end{itemize}
+	\begin{alertblock}{In a callback-driven, multithreaded system}
+		\justifying
+		An object created in one thread, passed to a callback, and deleted somewhere else is a recipe for \textbr{use-after-free bugs} that are nearly impossible to reproduce and debug.
+	\end{alertblock}
+	\textbg{Smart pointers} apply \textbg{RAII to heap memory}: the pointer object owns the resource and releases it automatically when destroyed.
+\end{frame}
+\begin{frame}{Smart pointers}{\texttt{std::unique\_ptr}}
+	\justifying
+	\texttt{std::unique\_ptr<T>} expresses \textbg{sole, exclusive ownership} of a heap-allocated object.\\
+  \bigskip
+	There is \textbg{exactly one} \texttt{unique\_ptr} per object, the object is destroyed when the pointer goes out of scope.\\
+  \bigskip
+	This enforces at compile time that no two owners exist simultaneously.\\
+  \bigskip
+	Use it as the \textbg{default} choice when ownership is clear and singular.\\
+  \bigskip
+  It cannot be \textbg{copied}, only \textbg{moved} (see code example).
+\end{frame}
+\begin{frame}[fragile]{Smart pointers}{\texttt{std::unique\_ptr}}
+  \begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption={\texttt{unique\_ptr} creation, transfer, and automatic release}.]
+#include <memory>
+
+{
+  auto p = std::make_unique<int>(42); // preferred creation
+  std::cout << * p << std::endl;      // 42
+
+  auto q = std::move(p); // ownership transferred to q
+                         // p is now empty (nullptr)
+} // q goes out of scope: int is deleted automatically
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Smart pointers}{\texttt{std::shared\_ptr}}
+	\justifying
+	\texttt{std::shared\_ptr<T>} allows \textbg{shared ownership}: multiple pointers may refer to the same object.\\
+  \bigskip
+	It maintains a \textbg{reference count}: the object is \textbg{destroyed} only when the \textbg{last} \texttt{shared\_ptr} to it is destroyed.\\
+  \bigskip
+	Always prefer \texttt{std::make\_shared} over \texttt{new}: it allocates the \textbg{object} and the \textbg{control block} in a \textbg{single allocation}, and is \textbg{exception-safe}.
+\end{frame}
+\begin{frame}[fragile]{Smart pointers}{\texttt{std::shared\_ptr}}
+  \begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Reference counting with \texttt{shared\_ptr}.]
+#include <memory>
+
+auto a = std::make_shared<int>(7); // count = 1
+{
+  auto b = a;                      // count = 2
+  std::cout << a.use_count() << std::endl; // 2
+  auto c = a;                      // count = 3
+} // b and c destroyed: count drops to 1
+
+// a still valid; int alive
+std::cout << a.use_count() << std::endl;   // 1
+// a goes out of scope: count = 0, int destroyed
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}{Smart pointers}{\texttt{std::weak\_ptr}}
+	\justifying
+	\texttt{std::weak\_ptr<T>} is a \textbg{non-owning observer}: it refers to an object managed by a \texttt{shared\_ptr} without incrementing the reference count.\\
+	\bigskip
+	It is used to \textbg{break ownership cycles} — two objects each holding a \texttt{shared\_ptr} to the other would keep each other alive forever.\\
+	\bigskip
+	To access the object, a \texttt{weak\_ptr} must be \textbg{promoted} to a \texttt{shared\_ptr} first, which \textbg{may fail} if the object has already been destroyed.
+\end{frame}
+\begin{frame}[fragile]{Smart pointers}{\texttt{std::weak\_ptr}}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Promoting a \texttt{weak\_ptr} to check if the object is still alive.]
+std::shared_ptr<int> owner = std::make_shared<int>(99);
+std::weak_ptr<int>   observer = owner;
+
+if (auto p = observer.lock())   // returns shared_ptr or null
+  std::cout << *p << std::endl; // object still alive
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Smart pointers}{The \texttt{SharedPtr} alias}
+	\justifying
+	In large codebases, writing \texttt{std::shared\_ptr<MyClass>} everywhere is cumbersome.\\
+	A common C++ convention — and a \textbg{systematic pattern in ROS 2} — is to define a \texttt{SharedPtr} alias inside the class itself.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=The \texttt{SharedPtr} alias as used in ROS 2 classes.]
+class MyNode
+{
+public:
+  using SharedPtr = std::shared_ptr<MyNode>;
+  // ...
+};
+    \end{lstlisting}
+	\end{columns}
+	You will encounter \texttt{Node::SharedPtr}, \texttt{Publisher::SharedPtr}, \texttt{Subscription::SharedPtr} and many others as soon as you open any rclcpp example.\\
+	They are all \texttt{std::shared\_ptr} instantiations behind the alias.
+\end{frame}

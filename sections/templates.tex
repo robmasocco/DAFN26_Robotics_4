@@ -1,0 +1,104 @@
+% Section 1 - Templates
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Templates ###
+\section{Templates}
+\graphicspath{{figs/section1/}}
+
+% --- Templates ---
+\begin{frame}{Templates}{Generic programming}
+	\justifying
+	Consider writing a \texttt{max()} \textbg{function} for \textbg{integers}, then again for \textbg{doubles}, then again for \textbg{any type} that supports comparison.\\
+	In \textbg{C} the only escape is a \textbg{macro} — unsafe, untyped, and undebuggable.\\
+	\bigskip
+	C++ solves this with \textbg{templates}: a mechanism for writing code that is \textbg{parameterized on a type} (or on a value).\\
+	\textbg{The compiler generates the actual code} for each combination of template arguments used in a program — at \textbg{compile time}, with full type checking.\\
+	\bigskip
+	\begin{block}{Definition of template}
+		A \textbf{template} is a blueprint for a \textbf{family} of functions or classes, parameterized by one or more \textbf{type parameters} (or non-type parameters), from which \textbf{the compiler generates concrete instantiations} on demand.
+	\end{block}
+\end{frame}
+\begin{frame}[fragile]{Templates}{Function templates}
+	\justifying
+	A \textbg{function template} is declared by prefixing the function with a \textbg{template parameter list}.\\
+	The type parameter is conventionally named \texttt{T} (though any name works).
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=A function template and some instantiations.]
+template<typename T>
+T max(T a, T b)
+{
+  return (a > b) ? a : b;
+}
+
+int    m1 = max<int>(3, 7);          // T = int
+double m2 = max<double>(3.14, 2.71); // T = double
+int    m3 = max(10, 20);             // T deduced by compiler
+    \end{lstlisting}
+	\end{columns}
+	When the arguments allow it, \textbg{the compiler deduces} the template argument automatically.
+\end{frame}
+\begin{frame}[fragile]{Templates}{Class templates}
+	\justifying
+	A \textbg{class template} defines a family of classes.\\
+	All member functions of a class template are \textbg{implicitly templates} themselves.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=A minimal class template.]
+template<typename T>
+class Box
+{
+public:
+  Box(T value) : value_(value) {}
+  T get() const { return value_; }
+private:
+  T value_;
+};
+Box<int>         int_box(42);
+Box<std::string> str_box("hello");
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Templates}{Instantiation and specialization}
+	\justifying
+	Each distinct set of template arguments produces a \textbg{separate instantiation} — a completely independent piece of compiled code.\\
+	A \textbg{template specialization} overrides the generic definition for that type only.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Full specialization of \texttt{Box} for \texttt{bool}.]
+template<>
+class Box<bool>
+{
+public:
+  Box(bool value) : value_(value) {}
+  bool get() const { return value_; }
+  void flip() { value_ = !value_; }
+private:
+  bool value_;
+};
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Templates}{Taming instantiation names}
+	\justifying
+	Template instantiation names grow quickly and become unwieldy in real code.\\
+	\texttt{using} aliases give them shorter, meaningful names.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Type aliases for template instantiations.]
+// Instead of writing this everywhere:
+std::map<std::string, std::vector<int>> table;
+
+// Define an alias:
+using StringIntVecMap = std::map<std::string, std::vector<int>>;
+StringIntVecMap table;
+
+// Alias templates are also possible:
+template<typename T>
+using Vec = std::vector<T>;
+Vec<double> data;
+    \end{lstlisting}
+	\end{columns}
+	This pattern is pervasive in ROS 2 — you will see \texttt{using SharedPtr = ...} in virtually every class.
+\end{frame}

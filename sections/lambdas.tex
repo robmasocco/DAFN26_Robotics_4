@@ -1,0 +1,119 @@
+% Section 4 - Lambdas and callbacks
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Lambdas and callbacks ###
+\section{Lambdas and callbacks}
+\graphicspath{{figs/section4/}}
+
+% --- Lambdas and callbacks ---
+\begin{frame}{Lambdas and callbacks}{Motivation}
+	\justifying
+	Many systems need to invoke \textbg{user-supplied code} at a point determined by the framework, not the user — a button press, a message arrival, a timer firing... on some \textbg{event}.\\
+	This pattern is called a \textbg{callback}.\\
+	\bigskip
+	In C, callbacks are plain \textbg{function pointers}: a fixed signature, no associated state, no closure.\\
+	Passing context requires an extra \texttt{void *} argument and a cast — fragile and untyped.\\
+	\bigskip
+	C++ addresses this with two complementary tools:
+	\begin{itemize}
+		\item \textbg{lambda expressions}: anonymous functions that can \textbg{capture} local variables from their surrounding scope;
+		\item \texttt{std::function}: a type-erased \textbg{wrapper} that can hold \textbg{any callable} — a lambda, a function pointer — with a given signature.
+	\end{itemize}
+	\begin{block}{}
+		\centering
+		\textbf{These two features are the backbone of event-driven programming in C++.}\\
+		Every ROS 2 subscriber callback and timer callback is expressed through them.
+	\end{block}
+\end{frame}
+\begin{frame}[fragile]{Lambdas and callbacks}{Lambda syntax}
+	\justifying
+	A \textbg{lambda expression} defines an anonymous function inline, at the point of use, as a value.\\
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Lambda syntax and basic examples.]
+// General form: [capture](params) -> return_type { body }
+auto add = [](int a, int b) { return a + b; };
+std::cout << add(3, 4) << std::endl; // 7
+
+// Lambdas can be passed directly where a callable is expected
+std::vector<int> v = {5, 1, 4, 2, 3};
+std::sort(v.begin(), v.end(), [](int a, int b) {
+  return a < b;
+});
+    \end{lstlisting}
+	\end{columns}
+	Lambdas are \textbg{first-class values}: they can be stored in variables, passed as arguments, and returned from functions.
+\end{frame}
+\begin{frame}{Lambdas and callbacks}{Capture}
+	\justifying
+	The \textbg{capture clause} \texttt{[...]} controls which \textbg{variables} from the \textbg{enclosing scope} are visible inside the lambda body, and how.\\
+  \bigskip
+  \textbg{Capture by reference} requires that the captured variable \textbg{outlives} the lambda — a common source of dangling-reference bugs.
+\end{frame}
+\begin{frame}[fragile]{Lambdas and callbacks}{Capture}
+  \begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption={Capture by value, by reference, and \texttt{this}}.]
+int threshold = 10;
+
+// Capture by value: lambda gets its own copy
+auto by_val = [threshold](int x) { return x > threshold; };
+// Capture by reference: lambda sees the original variable
+auto by_ref = [& threshold](int x) { return x > threshold; };
+threshold = 20; // by_ref will now use 20
+
+// Inside a member function, capture [this] to access members
+class Foo {
+  int lim_ = 5;
+  void bar() {auto baz = [this](int v) { return v < lim_; };}
+};
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}{Lambdas and callbacks}{\texttt{std::function} and \texttt{std::bind}}
+	\justifying
+	The type of a lambda is \textbg{anonymous and compiler-generated} — it cannot be written explicitly.\\
+	\texttt{std::function<R(Args...)>} is the solution: a \textbg{type-erased} wrapper that can hold \textbg{any callable} with a matching signature.\\
+  \bigskip
+  \texttt{std::bind} instead creates a callable by \textbg{binding} some (or all) arguments of an existing function or member function to fixed values.\\
+	\bigskip
+	It appears extensively in \textbg{existing C++ and ROS 2 code}.
+\end{frame}
+\begin{frame}[fragile]{Lambdas and callbacks}{\texttt{std::function} and \texttt{std::bind}}
+  \begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Storing heterogeneous callables in \texttt{std::function}.]
+#include <functional>
+
+int plain_fn(int x) { return x * 2; }
+
+std::function<int(int)> f;
+f = plain_fn;                    // a plain function
+f = [](int x) { return x * 2; }; // a lambda
+
+// std::function objects can be stored in containers
+std::vector<std::function<void(float)>> clbks;
+clbks.push_back([](float v) { std::cout << v << std::endl; });
+clbks.push_back([](float v) { /* log v */ });
+for (auto & cb : clbks) cb(3.14f);
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Lambdas and callbacks}{\texttt{std::function} and \texttt{std::bind}}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=\texttt{std::bind} compared to its lambda equivalent.]
+#include <functional>
+
+int add(int a, int b) { return a + b; }
+
+// Bind first argument to 10; second remains free (_1)
+auto add10 = std::bind(&add, 10, std::placeholders::_1);
+std::cout << add10(5) << std::endl; // 15
+
+// The modern equivalent with a lambda
+auto add10_lambda = [](int b) { return add(10, b); };
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
