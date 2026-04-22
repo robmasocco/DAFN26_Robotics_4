@@ -1,0 +1,74 @@
+% Section 3 - Race conditions
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Race conditions ###
+\section{Race conditions}
+\graphicspath{{figs/section3/}}
+
+% --- Race conditions ---
+\begin{frame}{Race conditions}{Shared mutable state}
+	\justifying
+	When two or more threads access the \textbg{same memory location} and at least one of them \textbg{writes} to it, the result depends on the \textbg{relative order of execution} — which is determined by the OS scheduler (or, even, the CPU) and is \textbg{non-deterministic}.\\
+	\bigskip
+	\begin{block}{Definition of race condition}
+		A \textbf{race condition} occurs when the correctness of a program depends on the specific \textbf{interleaving} of operations from concurrent threads on shared data.
+	\end{block}
+	\bigskip
+	You have studied this in your OS course. In C++ the problem is identical — the threading model is the same — but the solutions are expressed differently.
+\end{frame}
+\begin{frame}[fragile]{Race conditions}{Why a simple increment breaks}
+	\justifying
+	Consider two threads each incrementing a shared \texttt{int} one million times.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=A racy increment — result will be wrong.]
+int counter = 0;
+void increment(int n) {
+  for (int i = 0; i < n; ++i) counter++;
+}
+
+int main() {
+  std::thread t1(increment, 1000000);
+  std::thread t2(increment, 1000000);
+  t1.join();
+  t2.join();
+  // counter == 2000000?
+}
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}{Race conditions}{Anatomy of the race}
+	\justifying
+	The expression \texttt{counter++} is \textbg{not a single operation}. It decomposes into three steps:
+	\begin{enumerate}
+		\item \textbg{read} the current value of \texttt{counter} from memory into a register;
+		\item \textbg{modify} (increment) the value in the register;
+		\item \textbg{write} the new value back to memory.
+	\end{enumerate}
+	\bigskip
+	If two threads interleave in the middle:
+	\begin{enumerate}
+		\item Thread A reads \texttt{counter = 5}
+		\item Thread B reads \texttt{counter = 5} (same value!)
+		\item Thread A writes \texttt{counter = 6}
+		\item Thread B writes \texttt{counter = 6} — \textbg{one increment is lost}.
+	\end{enumerate}
+	\bigskip
+	\begin{alertblock}{Non-determinism}
+		\justifying
+		Running the same program twice may produce \textbr{different results}.
+		These bugs are among the \textbr{hardest to find and reproduce}.
+	\end{alertblock}
+\end{frame}
+\begin{frame}{Race conditions}{Solutions}
+	\justifying
+	The fundamental approaches to eliminating data races are
+	\begin{itemize}
+		\item \textbg{mutual exclusion}: ensure that only one thread accesses the shared data at a time — using \textbg{mutexes} and \textbg{locks};
+		\item \textbg{atomic operations}: use hardware-level instructions that perform read-modify-write as a \textbg{single, indivisible step};
+		\item \textbg{avoiding shared state}: design the system so that threads do not share mutable data at all (message-passing, thread-local storage).
+	\end{itemize}
+	\bigskip
+	We will now see the C++ standard library tools for the first two approaches — they correspond directly to the POSIX primitives you already know, wrapped in RAII.
+\end{frame}

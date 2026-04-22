@@ -1,0 +1,94 @@
+% Section 1 - std::chrono
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### std::chrono ###
+\section{std::chrono}
+\graphicspath{{figs/section1/}}
+
+% --- Time in C vs C++ ---
+\begin{frame}{std::chrono}{Time in C vs C++}
+	\justifying
+	In C, time handling is primitive: \texttt{time()}, \texttt{gettimeofday()}, \texttt{clock\_gettime()} all return integers or structs with arbitrary units, and arithmetic on them is manual and error-prone.\\
+	\bigskip
+	C++ provides \texttt{std::chrono} — a \textbg{type-safe} time library in which \textbg{durations}, \textbg{time points}, and \textbg{clocks} are distinct types.\\
+	The compiler prevents mixing incompatible units at \textbg{compile time}:
+	\begin{itemize}
+		\item you cannot accidentally add seconds to a raw integer;
+		\item \textbg{conversions} between units (e.g., milliseconds to seconds) are explicit or lossless;
+		\item the units are encoded \textbg{in the type itself}.
+	\end{itemize}
+	\bigskip
+	\begin{block}{}
+		\centering
+		\texttt{std::chrono} is used throughout the C++ standard library and in ROS 2 (\textbf{timers}, \textbf{rates}, \textbf{timeouts}).
+	\end{block}
+\end{frame}
+
+% --- std::chrono ---
+\begin{frame}[fragile]{std::chrono}{Durations and literals}
+	\justifying
+	An \texttt{std::chrono::duration} represents a \textbg{time span}.\\
+	The standard library provides ready-made aliases for common units:\\
+	\texttt{std::chrono::nanoseconds}, \texttt{microseconds}, \texttt{milliseconds}, \texttt{seconds}, \texttt{minutes}, \texttt{hours}.\\
+	\smallskip
+	C++14 introduced \textbg{chrono literals}, which allow writing durations in a natural syntax.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Chrono literals and duration arithmetic.]
+#include <chrono>
+using namespace std::chrono_literals;
+
+auto half_second = 500ms;       // std::chrono::milliseconds
+auto two_seconds = 2s;          // std::chrono::seconds
+auto total       = half_second + two_seconds; // 2500ms
+std::chrono::milliseconds period(100);
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}{std::chrono}{Clocks and time points}
+	\justifying
+	A \textbg{clock} provides access to the current time. The most important ones are:
+	\begin{itemize}
+		\item \texttt{std::chrono::steady\_clock}: monotonic, never adjusted — use it for \textbg{measuring elapsed time};
+		\item \texttt{std::chrono::system\_clock}: wall-clock time, may be adjusted by NTP — use it for \textbg{timestamps}.
+	\end{itemize}
+	\bigskip
+	A \texttt{time\_point} represents a specific instant, obtained from a clock.\\
+	Subtracting two time points yields a \textbg{duration}.
+\end{frame}
+\begin{frame}[fragile]{std::chrono}{Clocks and time points}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Measuring elapsed time with \texttt{steady\_clock}.]
+using clk = std::chrono::steady_clock;
+
+auto start = clk::now();
+// ... do some work ...
+auto end = clk::now();
+
+auto elapsed = std::chrono::duration_cast<
+  std::chrono::milliseconds>(end - start);
+std::cout << "Elapsed: " << elapsed.count() << " ms\n";
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{std::chrono}{Sleeping}
+	\justifying
+	\texttt{std::this\_thread::sleep\_for()} suspends the calling thread for a given duration.\\
+	It is the C++ replacement for \texttt{usleep()} and \texttt{nanosleep()}, and it accepts any\\
+  \texttt{std::chrono::duration}.
+  \medskip
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Sleeping with \texttt{chrono} durations.]
+#include <chrono>
+#include <thread>
+
+using namespace std::chrono_literals;
+
+std::this_thread::sleep_for(200ms);  // sleep 200 ms
+std::this_thread::sleep_for(1s);     // sleep 1 second
+    \end{lstlisting}
+	\end{columns}
+\end{frame}

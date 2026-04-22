@@ -1,13 +1,13 @@
-% DAFN26 - Robotics - Lecture 3
+% DAFN26 - Robotics - Lecture 4
 % Roberto Masocco <roberto.masocco@uniroma2.it>
-% April 22, 2026
+% April 30, 2026
 
 \documentclass[aspectratio=169]{beamer}
 
 % Slides layout
 \usepackage[
-    title={From C to C++ II},
-    subtitle={Generic programming, the standard library, and callbacks},
+    title={From C to C++ III},
+    subtitle={Concurrency},
     event={DAFN},
     author={Roberto Masocco},
     longauthor={Roberto Masocco},
@@ -16,7 +16,7 @@
     longinstitute={Tor Vergata University of Rome},
     department={Department of Civil Engineering and Computer Science Engineering},
     researchgroup={},
-    date={April 29, 2026}
+    date={April 30, 2026}
 ]{utvengbeamer}
 
 % Code listings settings
@@ -58,15 +58,21 @@
 \end{frame}
 
 % --- Section 1 ---
-\input{sections/templates}
+\input{sections/chrono}
 
 % --- Section 2 ---
-\input{sections/stl}
+\input{sections/thread}
 
 % --- Section 3 ---
-\input{sections/pointers}
+\input{sections/race}
 
 % --- Section 4 ---
-\input{sections/lambdas}
+\input{sections/locks}
+
+% --- Section 5 ---
+\input{sections/cv}
+
+% --- Section 6 ---
+\input{sections/atomic}
 
 \end{document}

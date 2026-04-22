@@ -1,0 +1,72 @@
+% Section 4 - Mutexes and locks
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Mutexes and locks ###
+\section{Mutexes and locks}
+\graphicspath{{figs/section4/}}
+
+% --- std::mutex ---
+\begin{frame}[fragile]{Mutexes and locks}{\texttt{std::mutex}}
+	\justifying
+	\texttt{std::mutex} is the C++ equivalent of \texttt{pthread\_mutex\_t}. It provides two operations:
+	\begin{itemize}
+		\item \texttt{lock()}: \textbg{acquires} the mutex; if another thread holds it, \textbg{blocks} until it is released;
+		\item \texttt{unlock()}: \textbg{releases} the mutex.
+	\end{itemize}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Protecting a shared counter with \texttt{std::mutex}.]
+int counter = 0;
+std::mutex mtx;
+void increment(int n) {
+  for (int i = 0; i < n; ++i) {
+    mtx.lock();
+    counter++;
+    mtx.unlock();
+  }
+}
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Mutexes and locks}{\texttt{std::lock\_guard}}
+	\justifying
+	\texttt{std::lock\_guard<std::mutex>} applies RAII to mutex locking.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=RAII locking with \texttt{lock\_guard}.]
+void increment(int n) {
+  for (int i = 0; i < n; ++i) {
+    std::lock_guard<std::mutex> lock(mtx);
+    counter++;
+  } // lock destroyed here: mutex unlocked
+}
+    \end{lstlisting}
+	\end{columns}
+	\begin{block}{}
+		\centering
+		\textbf{RAII closing the loop from Lecture 1}: the resource is a mutex lock, the object is the guard.\\
+		Never call \texttt{lock()}/\texttt{unlock()} manually — \textbf{always use a guard}.
+	\end{block}
+\end{frame}
+\begin{frame}[fragile]{Mutexes and locks}{\texttt{std::unique\_lock}}
+	\justifying
+	\texttt{std::unique\_lock<std::mutex>} is a more flexible alternative to \texttt{lock\_guard}:
+	\begin{itemize}
+		\item it can be \textbg{deferred} (constructed without locking), \textbg{manually locked/unlocked}, and \textbg{moved} between scopes;
+		\item it is \textbg{required} by \texttt{std::condition\_variable}.
+	\end{itemize}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=\texttt{unique\_lock} with deferred locking.]
+std::mutex mtx;
+
+std::unique_lock<std::mutex> lock(mtx, std::defer_lock);
+// mutex NOT locked yet
+
+lock.lock();     // lock manually when needed
+// ... critical section ...
+lock.unlock();   // unlock manually before destruction
+    \end{lstlisting}
+	\end{columns}
+\end{frame}

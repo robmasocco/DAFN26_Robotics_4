@@ -1,0 +1,94 @@
+% Section 6 - Atomic operations
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### Atomic operations ###
+\section{Atomic operations}
+\graphicspath{{figs/section6/}}
+
+% --- Atomic operations ---
+\begin{frame}{Atomic operations}
+	\justifying
+	An \textbg{atomic operation} is one that completes as an \textbg{indivisible step} from the perspective of all other threads — no other thread can observe a partial result.\\
+	\bigskip
+	Modern processors support atomic \textbg{read-modify-write} instructions at the hardware level (\emph{e.g.}, \texttt{lock xadd} on x86, \texttt{ldxr}/\texttt{stxr} on ARM).\\
+	C++ exposes them through \texttt{std::atomic<T>}.\\
+	\bigskip
+	Atomics are appropriate when:
+	\begin{itemize}
+		\item the shared state is a \textbg{single variable} of a simple type (\texttt{int}, \texttt{bool}, pointer);
+		\item the operation on it is \textbg{self-contained} (increment, compare-and-swap, flag set/clear).
+	\end{itemize}
+	\begin{block}{}
+		\centering
+		For anything more complex than a single variable, use a \textbf{mutex}.
+	\end{block}
+\end{frame}
+\begin{frame}{Atomic operations}{\texttt{std::atomic<T>}}
+	\justifying
+	\texttt{std::atomic<T>} wraps a value of type \texttt{T} and guarantees that all operations on it are atomic.\\
+	The most common operations are:
+	\begin{itemize}
+		\item \texttt{store(value)}: atomically write;
+		\item \texttt{load()}: atomically read;
+		\item \texttt{fetch\_add(n)}: atomically read, add, and write; returns the old value;
+		\item \texttt{compare\_exchange()}: atomically read, compare, and overwrite with a different value if the comparison succeeds;
+		\item the usual arithmetic operators (\texttt{++}, \texttt{+=}, etc.) are overloaded and atomic.
+	\end{itemize}
+\end{frame}
+\begin{frame}[fragile]{Atomic operations}{\texttt{std::atomic<T>}}
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Fixing the counter race with \texttt{std::atomic}.]
+std::atomic<int> counter{0};
+void increment(int n) {
+  for (int i = 0; i < n; ++i)
+    counter++; // atomic read-modify-write
+}
+
+int main() {
+  std::thread t1(increment, 1000000);
+  std::thread t2(increment, 1000000);
+  t1.join();
+  t2.join();
+  std::cout << counter << std::endl; // Exactly 2000000
+}
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{Atomic operations}{Atomic flags}
+	\justifying
+	A very common use of atomics is a \textbg{stop flag}: a boolean that one thread sets to signal others to terminate their loops.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Using an atomic flag to signal thread termination.]
+std::atomic<bool> running{true};
+void worker() {
+  while (running.load()) { /* work */ }
+}
+
+int main() {
+  std::thread t(worker);
+  /* ... */
+  running.store(false); // Signal the worker to stop
+  t.join();
+}
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}{Atomic operations}{Atomics vs mutexes}
+	\justifying
+	\textbg{Atomics}:
+	\begin{itemize}
+		\item protect a \textbg{single variable};
+		\item no waiting, no context switch — \textbg{lock-free};
+		\item faster for simple operations (counters, flags).
+	\end{itemize}
+	\bigskip
+	\textbg{Mutexes}:
+	\begin{itemize}
+		\item protect an \textbg{arbitrary critical section} involving multiple variables and operations;
+		\item a thread that cannot acquire the lock is put to sleep by the OS — \textbg{blocking};
+		\item the only correct choice when \textbg{a single variable is not enough}.
+	\end{itemize}
+\end{frame}

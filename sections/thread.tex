@@ -1,0 +1,65 @@
+% Section 2 - std::thread
+% Roberto Masocco <roberto.masocco@uniroma2.it>
+% April 22, 2026
+
+% ### std::thread ###
+\section{std::thread}
+\graphicspath{{figs/section2/}}
+
+% --- std::thread ---
+\begin{frame}{std::thread}{From POSIX to C++}
+	\justifying
+	You already know threads from your OS course: a thread is an \textbg{independent flow of execution} within a process, sharing its \textbg{address space} and \textbg{resources}.\\
+	\bigskip
+	In C/POSIX, threads are managed through the \texttt{pthread} API: \texttt{pthread\_create}, \texttt{pthread\_join}, \texttt{pthread\_detach} — functional but verbose.\\
+	\bigskip
+	C++11 introduced \texttt{std::thread}: a \textbg{portable}, \textbg{RAII-aware wrapper} around the platform's threading primitives.\\
+	The underlying model is identical:
+	\begin{itemize}
+		\item threads share the process memory space;
+		\item each thread has its own stack;
+		\item scheduling is managed by the operating system kernel.
+	\end{itemize}
+	\begin{block}{}
+		\centering
+		\textbf{Same model, cleaner interface, fewer mistakes.}
+	\end{block}
+\end{frame}
+\begin{frame}[fragile]{std::thread}{Creating threads}
+	\justifying
+	An \texttt{std::thread} is constructed by passing any \textbg{callable} and its arguments.\\
+	The thread starts executing \textbg{immediately} upon construction, arguments are \textbg{copied} by default.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Creating threads from a function and a lambda.]
+#include <iostream>
+#include <thread>
+
+void greet(const std::string & name) {
+  std::cout << "Hello from " << name << "\n";
+}
+
+std::thread t1(greet, "thread_1");
+
+std::thread t2([]() {std::cout << "Hello from lambda\n";});
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
+\begin{frame}[fragile]{std::thread}{\texttt{join()} and \texttt{detach()}}
+	\justifying
+	Every \texttt{std::thread} must be either \textbg{joined} or \textbg{detached} before it is destroyed.\\
+	\bigskip
+	\texttt{t.join()} blocks the calling thread until \texttt{t} finishes — the standard way to \textbg{wait for completion}.\\
+	\bigskip
+	\texttt{t.detach()} releases ownership: the thread runs independently and its resources are reclaimed by the OS when it finishes — use sparingly and only for \textbg{fire-and-forget} tasks.
+	\begin{columns}
+		\column{.9\textwidth}
+		\begin{lstlisting}[style=codebeamer, language=C++, caption=Joining threads.]
+std::thread t1(greet, "worker_1");
+std::thread t2(greet, "worker_2");
+
+t1.detach(); // do not wait for t1 to finish
+t2.join();   // wait for t2 to finish
+    \end{lstlisting}
+	\end{columns}
+\end{frame}
