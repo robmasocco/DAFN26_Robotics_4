@@ -43,7 +43,7 @@ bool ready = false;
 
 // WAITING THREAD
 std::unique_lock<std::mutex> lock(mtx);
-cv.wait(lock, [&]{ return ready; }); // sleep until ready
+cv.wait(lock, [&]{ return ready; }); // captures all by ref.
 
 // SIGNALING THREAD
 {
