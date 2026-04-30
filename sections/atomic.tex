@@ -10,14 +10,19 @@
 \begin{frame}{Atomic operations}
 	\justifying
 	An \textbg{atomic operation} is one that completes as an \textbg{indivisible step} from the perspective of all other threads — no other thread can observe a partial result.\\
-	\bigskip
+	\medskip
 	Modern processors support atomic \textbg{read-modify-write} instructions at the hardware level (\emph{e.g.}, \texttt{lock xadd} on x86, \texttt{ldxr}/\texttt{stxr} on ARM).\\
 	C++ exposes them through \texttt{std::atomic<T>}.\\
-	\bigskip
-	Atomics are appropriate when:
+	\medskip
+	Atomics are appropriate when
 	\begin{itemize}
 		\item the shared state is a \textbg{single variable} of a simple type (\texttt{int}, \texttt{bool}, pointer);
-		\item the operation on it is \textbg{self-contained} (increment, compare-and-swap, flag set/clear).
+		\item the operation on it is \textbg{self-contained} (increment, compare-and-swap, flag set/clear);
+		\item you need a \textbg{memory barrier} enforcing an \textbg{order}:
+      \begin{itemize}
+        \item define \textbg{who wins a race};
+        \item ensure that \textbg{all cache-to-memory writes are visible to everyone} from the next line.
+      \end{itemize}
 	\end{itemize}
 	\begin{block}{}
 		\centering
@@ -82,7 +87,8 @@ int main() {
 	\begin{itemize}
 		\item protect a \textbg{single variable};
 		\item no waiting, no context switch — \textbg{lock-free};
-		\item faster for simple operations (counters, flags).
+		\item faster for simple operations (counters, flags);
+		\item acting as \textbg{memory barriers}.
 	\end{itemize}
 	\bigskip
 	\textbg{Mutexes}:
